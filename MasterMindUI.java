@@ -6,44 +6,24 @@ public class MasterMindUI {
     // Constants
     private static final int PIN_SIZE = 10;
     private static final int GUESS_SIZE = 35;
+    private static final Color BG_COLOR = new Color(194, 243, 213);
 
-    // Circle not clickable
-    private static class CirclePanel extends JPanel {
-        private final Color color;
+    private Color selectedColor = null;
+
+    // Combined Circle class
+    private static class Circle extends JButton {
+        private Color color;
         private final int diameter;
 
-        public CirclePanel(Color color, int diameter) {
+        public Circle(Color color, int diameter, boolean clickable) {
             this.color = color;
             this.diameter = diameter;
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            g.setColor(color);
-            g.fillOval(0, 0, getWidth(), getHeight());
-        }
-
-        @Override
-        public Dimension getPreferredSize() {
-            return new Dimension(diameter, diameter);
-        }
-    }
-
-    // Circle clickable
-    private static class CircleButton extends JButton {
-        private final Color color;
-        private final int diameter;
-
-        public CircleButton(Color color, int diameter) {
-            this.color = color;
-            this.diameter = diameter;
-
             setContentAreaFilled(false);
             setBorderPainted(false);
             setFocusPainted(false);
             setOpaque(false);
+
+            if (!clickable) setEnabled(false);
         }
 
         @Override
@@ -56,6 +36,11 @@ public class MasterMindUI {
         @Override
         public Dimension getPreferredSize() {
             return new Dimension(diameter, diameter);
+        }
+
+        public void setCircleColor(Color c) {
+            this.color = c;
+            repaint();
         }
     }
 
@@ -74,7 +59,6 @@ public class MasterMindUI {
     // Main UI
     public MasterMindUI() {
         // Color variables
-        Color bgColor = new Color(194, 243, 213);
         Color[] colors = {
                 new Color(240, 17, 17),
                 new Color(104, 227, 70),
@@ -94,7 +78,7 @@ public class MasterMindUI {
 
         // Center: Board with 10 rows for 10 rounds
         JPanel centerPanel = new JPanel();
-        centerPanel.setBackground(bgColor);
+        centerPanel.setBackground(BG_COLOR);
         centerPanel.setLayout(new GridLayout(10, 1, 0, 0));
         frame.add(centerPanel, BorderLayout.CENTER);
 
@@ -102,30 +86,31 @@ public class MasterMindUI {
         for (int i = 0; i < 10; i++) {
             // Row container
             JPanel roundPanel = new JPanel();
-            roundPanel.setBackground(bgColor);
+            roundPanel.setBackground(BG_COLOR);
             roundPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 50, 0));
 
             // Pin panel
             JPanel pinPanel = new JPanel();
-            pinPanel.setBackground(bgColor);
+            pinPanel.setBackground(BG_COLOR);
             pinPanel.setLayout(new GridLayout(2, 2, 5, 5));
 
             for (int j = 0; j < 4; j++) {
-                pinPanel.add(new CirclePanel(new Color(187, 183, 172), PIN_SIZE));
+                pinPanel.add(new Circle(base, PIN_SIZE, false));
             }
 
             // Guess panel
             JPanel guessPanel = new JPanel();
-            guessPanel.setBackground(bgColor);
+            guessPanel.setBackground(BG_COLOR);
             guessPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
 
             // Generating guess slots
             for (int j = 0; j < 4; j++) {
-                CircleButton btn = new CircleButton(base, GUESS_SIZE);
-
-                // Example action
-                btn.addActionListener(e -> System.out.println("Guess button clicked"));
-
+                Circle btn = new Circle(base, GUESS_SIZE, true);
+                btn.addActionListener(e -> {
+                    if (selectedColor != null) {
+                        btn.setCircleColor(selectedColor);
+                    }
+                });
                 guessPanel.add(btn);
             }
 
@@ -136,22 +121,13 @@ public class MasterMindUI {
 
         // Bottom, for buttons
         JPanel bottomPanel = new JPanel();
-        bottomPanel.setBackground(bgColor);
+        bottomPanel.setBackground(BG_COLOR);
         bottomPanel.setLayout(new BorderLayout(10, 0));
         bottomPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
 
-        // Color panel
-        JPanel colorPanel = new JPanel();
-        colorPanel.setBackground(bgColor);
-        colorPanel.setLayout(new GridLayout(1, 6, 0, 0));
-        for (int i = 0; i < colors.length; i++) {
-            JButton btn = createStyledButton(labels[i], colors[i], 50);
-            colorPanel.add(btn);
-        }
-
         // Control buttons
         JPanel controlPanel = new JPanel();
-        controlPanel.setBackground(bgColor);
+        controlPanel.setBackground(BG_COLOR);
         controlPanel.setLayout(new GridLayout(1, 2, 10, 0));
         controlPanel.setPreferredSize(new Dimension(200, 50));
         // Check
@@ -160,6 +136,24 @@ public class MasterMindUI {
         // Selected
         JButton selected = createStyledButton("Selected", base, 50);
         controlPanel.add(selected);
+
+        // Color panel
+        JPanel colorPanel = new JPanel();
+        colorPanel.setBackground(BG_COLOR);
+        colorPanel.setLayout(new GridLayout(1, 6, 0, 0));
+        for (int i = 0; i < colors.length; i++) {
+            JButton btn = createStyledButton(labels[i], colors[i], 50);
+
+            final Color chosen = colors[i];    // <-- capture color
+            btn.addActionListener(e -> {
+                selectedColor = chosen;
+                selected.setBackground(selectedColor);
+                selected.repaint();
+            });
+
+            colorPanel.add(btn);
+        }
+
         // Adding
         bottomPanel.add(colorPanel, BorderLayout.WEST);
         bottomPanel.add(controlPanel, BorderLayout.EAST);
@@ -168,7 +162,6 @@ public class MasterMindUI {
         frame.pack();
         frame.setVisible(true);
     }
-
 
     public static void main(String[] args) {
         new MasterMindUI();
